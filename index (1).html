@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tour de la Polynésie</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#eaf8fb;--card:#fff;--tx:#0b3a4a;--mut:#5b8794;--ac:#7c3aed;--bd:#cfe9ef}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#082631;--card:#0f3646;--tx:#e6f7fb;--mut:#8fbac6;--ac:#a78bfa;--bd:#1c5063;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#082631;--card:#0f3646;--tx:#e6f7fb;--mut:#8fbac6;--ac:#a78bfa;--bd:#1c5063;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:480px;margin:0 auto;padding:14px}
+h1{font-size:20px;margin:4px 0 2px}
+.sub{color:var(--mut);font-size:14px;margin:0 0 10px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:12px;margin-bottom:12px}
+.stats{display:flex;gap:8px;text-align:center}
+.stats div{flex:1}
+.stats b{display:block;font-size:22px}
+.stats span{font-size:12px;color:var(--mut)}
+.bar{height:10px;border-radius:6px;background:var(--bd);margin-top:10px;overflow:hidden}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,#7c3aed,#06b6d4);width:0;transition:width .6s}
+svg{width:100%;height:auto;display:block;border-radius:16px;border:1px solid var(--bd)}
+.row{display:flex;gap:8px}
+input{flex:1;min-width:0;font-size:18px;padding:10px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx)}
+button{font-size:16px;padding:10px 14px;border-radius:10px;border:0;background:var(--ac);color:#fff;font-weight:600}
+button.g{background:transparent;color:var(--mut);padding:2px 8px;font-weight:400}
+ul{list-style:none;margin:8px 0 0;padding:0;font-size:14px}
+li{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-top:1px solid var(--bd)}
+#toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 14px);transform:translateX(-50%) translateY(-120px);background:#7c3aed;color:#fff;padding:12px 18px;border-radius:14px;font-weight:600;text-align:center;transition:transform .4s;z-index:9;max-width:90%}
+#toast.on{transform:translateX(-50%) translateY(0)}
+@keyframes p{50%{stroke-width:8;opacity:.5}}
+.cur{animation:p 1.4s infinite}
+.mapw{max-height:70vh;overflow:auto;border-radius:16px;border:1px solid var(--bd)}
+#map{min-width:900px;border:0;border-radius:0}
+</style>
+</head>
+<body>
+<main>
+<h1>Tour de la Polynésie 🌺</h1>
+<p class="sub">Chaque km de marche te fait avancer de Tahiti jusqu’aux îles desservies par Air Tahiti. Chaque île se débloque quand tu atteins sa distance.</p>
+<div class="card">
+<div class="stats"><div><b id="tot">0</b><span>km marchés</span></div><div><b id="nxt">–</b><span id="nxtl">prochain palier</span></div><div><b id="left">–</b><span>îles débloquées</span></div></div>
+<div class="bar"><i id="pb"></i></div>
+</div>
+<div class="mapw" id="mapw"><svg id="map" viewBox="0 0 1000 910" role="img" aria-label="Carte de progression"></svg></div>
+<div class="card" style="margin-top:12px">
+<div class="row"><input id="km" type="number" inputmode="decimal" min="0" step="0.1" placeholder="Km de la marche (ex. 3.5)"><button id="add">Ajouter</button></div>
+<ul id="log"></ul>
+<div style="text-align:right;margin-top:6px"><button class="g" id="reset">Tout remettre à zéro</button></div>
+</div>
+</main>
+<div id="toast"></div>
+<script>
+var R=[["Tahiti",0,205,540,"m",16],["Moorea",5,160,520,"m",9,"l"],["Huahine",14,135,505,"m",9,"r"],["Raiatea",20,100,530,"m",10],["Taha’a",24,88,495,"m",8,"l"],["Bora Bora",29,95,455,"m",11,"u"],["Maupiti",36,45,470,"m",7],
+["Rimatara",48,35,802,"m",7,"r"],["Rurutu",55,108,791,"m",9,"u"],["Tubuai",66,200,839,"m",9],["Raivavae",75,292,865,"m",8,"u"],["Mangareva",92,926,826,"m",9,"l"],
+["Reao",105,855,586,"a",6,"r"],["Pukarua",110,825,576,"a",6,"l"],["Tureia",118,750,706,"a",6],["Nukutavake",126,735,628,"a",6,"l"],["Vahitahi",130,755,602,"a",6,"r"],["Tatakoto",135,755,526,"a",6,"r"],
+["Hao",142,627,564,"a",8],["Fangatau",150,630,446,"a",6,"l"],["Fakahina",154,667,455,"a",6,"r"],["Napuka",160,615,361,"a",6,"u"],["Raroia",172,553,459,"a",6,"u"],["Hikueru",180,545,539,"a",6],
+["Makemo",188,493,489,"a",8],["Katiu",194,455,474,"a",6,"u"],["Anaa",202,400,526,"a",7],["Faaite",208,408,494,"a",6,"r"],["Fakarava",214,395,459,"a",9,"l"],["Apataki",222,355,434,"a",7,"r"],
+["Kaukura",227,335,440,"a",6,"l"],["Arutua",232,340,417,"a",6,"u"],["Mataiva",238,240,397,"a",6,"u"],["Tikehau",244,265,409,"a",7],["Rangiroa",250,292,401,"a",10,"r"],["Ahe",258,345,370,"a",6,"u"],
+["Manihi",262,378,376,"a",7,"d"],["Takapoto",268,412,388,"a",6],["Takaroa",272,440,368,"a",7,"r"],["Puka Puka",284,735,394,"a",6,"u"],
+["Hiva Oa",296,725,134,"m",10],["Ua Huka",306,697,87,"m",8,"r"],["Nuku Hiva",312,666,82,"m",12,"l"],["Ua Pou",318,672,113,"m",9,"l"]];
+var N=R.map(function(a){return{n:a[0],k:a[1],x:a[2]+30,y:a[3],t:a[4],r:a[5],l:a[6]||"d"}});
+var AR=[["SOCIÉTÉ",190,600],["AUSTRALES",150,745],["TUAMOTU",460,610],["MARQUISES",760,40],["GAMBIER",880,790]];
+var T=N[N.length-1].k,KEY="marche-pf-v1",walks=[];
+var $=function(i){return document.getElementById(i)};
+try{walks=JSON.parse(localStorage.getItem(KEY)||"[]")}catch(e){walks=[]}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(walks))}catch(e){}}
+function total(){return walks.reduce(function(a,w){return a+w.km},0)}
+function pos(km){for(var i=1;i<N.length;i++){if(km<=N[i].k||i==N.length-1){var a=N[i-1],b=N[i],t=Math.max(0,Math.min(1,(km-a.k)/(b.k-a.k)));return{x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t}}}}
+function drawMap(){
+var km=total(),s='<defs><linearGradient id="o" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5fd3e8"/><stop offset="1" stop-color="#0aa5d6"/></linearGradient><filter id="gr"><feColorMatrix type="saturate" values="0.05"/></filter></defs><rect width="1000" height="910" fill="url(#o)"/>';
+AR.forEach(function(a){s+='<text x="'+a[1]+'" y="'+a[2]+'" text-anchor="middle" font-size="28" font-weight="800" fill="#fff" opacity=".3" letter-spacing="3">'+a[0]+'</text>'});
+s+='<path d="M'+N.map(function(q){return q.x+" "+q.y}).join(" L")+'" fill="none" stroke="#fff" stroke-width="2.5" stroke-dasharray="2 8" stroke-linecap="round" opacity=".6"/>';
+var nx=-1;for(var i=0;i<N.length;i++){if(N[i].k>km){nx=i;break}}
+N.forEach(function(o,i){
+var on=km>=o.k,r=o.r,c='cx="'+o.x+'" cy="'+o.y+'"';
+s+='<g'+(on?'':' filter="url(#gr)" opacity=".55"')+'>';
+if(o.t=="m")s+='<circle '+c+' r="'+(r+8)+'" fill="#9be9f2" opacity=".5"/><circle '+c+' r="'+(r+3)+'" fill="#f3d9a0"/><circle '+c+' r="'+r+'" fill="#6cbf4a"/><polygon points="'+(o.x-r*.6)+','+(o.y+r*.3)+' '+o.x+','+(o.y-r*.9)+' '+(o.x+r*.6)+','+(o.y+r*.3)+'" fill="#8a6a5a"/>';
+else s+='<circle '+c+' r="'+(r+6)+'" fill="#9be9f2" opacity=".5"/><circle '+c+' r="'+r+'" fill="#7ee3ee" stroke="#f3d9a0" stroke-width="3" stroke-dasharray="5 3"/>';
+s+='</g><circle '+c+' r="'+(r+11)+'" fill="none" stroke="'+(i==nx?"#f59e0b":on?"#7c3aed":"#9ca3af")+'" stroke-width="3"'+(i==nx?' class="cur"':'')+'/>';
+var tx=o.x,ty=o.y+r+27,an="middle";
+if(o.l=="u")ty=o.y-r-28;
+if(o.l=="l"){tx=o.x-r-16;ty=o.y-1;an="end"}
+if(o.l=="r"){tx=o.x+r+16;ty=o.y-1;an="start"}
+var st=' text-anchor="'+an+'" fill="#fff" stroke="#0b5a73" stroke-width="3" paint-order="stroke"'+(on?'':' opacity=".8"');
+s+='<text x="'+tx+'" y="'+ty+'" font-size="12" font-weight="700"'+st+'>'+o.n+'</text><text x="'+tx+'" y="'+(ty+11)+'" font-size="10"'+st+'>'+o.k+' km</text>';
+});
+var b=pos(Math.min(km,T));
+s+='<text x="'+(b.x-14)+'" y="'+(b.y-18)+'" font-size="28">⛵</text>';
+$("map").innerHTML=s;
+var w=$("mapw"),m=$("map");
+w.scrollLeft=Math.max(0,b.x*m.clientWidth/1000-w.clientWidth/2);
+w.scrollTop=Math.max(0,b.y*m.clientHeight/910-w.clientHeight/2);
+}
+function ui(){
+var km=total(),nx=null;
+for(var i=0;i<N.length;i++){if(N[i].k>km){nx=N[i];break}}
+$("tot").textContent=km.toFixed(1).replace(".0","");
+$("nxt").textContent=nx?(nx.k-km).toFixed(1).replace(".0","")+" km":"✔";
+$("nxtl").textContent=nx?"avant "+nx.n:"terminé";
+$("left").textContent=N.filter(function(q){return km>=q.k}).length+"/"+N.length;
+$("pb").style.width=Math.min(100,km/T*100)+"%";
+drawMap();
+var l=$("log");l.innerHTML="";
+walks.slice(-5).reverse().forEach(function(w){
+var li=document.createElement("li");
+li.innerHTML="<span>"+new Date(w.d).toLocaleDateString("fr-FR",{day:"numeric",month:"short"})+" · <b>"+w.km+" km</b></span>";
+var x=document.createElement("button");x.className="g";x.textContent="✕";
+x.onclick=function(){walks.splice(walks.indexOf(w),1);save();ui()};
+li.appendChild(x);l.appendChild(li)});
+}
+function toast(t){var e=$("toast");e.textContent=t;e.className="on";setTimeout(function(){e.className=""},3500)}
+$("add").onclick=function(){
+var v=parseFloat($("km").value.replace(",","."));
+if(!(v>0)||v>100){toast("Entre un nombre de km valide");return}
+var before=total();
+walks.push({d:new Date().toISOString(),km:Math.round(v*10)/10});save();$("km").value="";
+var after=total();ui();
+if(before<T&&after>=T)toast("🎉 Tour de la Polynésie terminé ! Toutes les îles sont débloquées !");
+else{var hit=N.filter(function(q){return q.k>before&&q.k<=after});if(hit.length)toast("🏝️ "+hit[hit.length-1].n+" débloquée !"+(hit.length>1?" (+"+(hit.length-1)+" autres)":""))}
+};
+$("reset").onclick=function(){if(confirm("Effacer toutes tes marches ?")){walks=[];save();ui()}};
+ui();
+</script>
+</body>
+</html>
